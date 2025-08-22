@@ -12,27 +12,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      release_id: ${{ steps.create_release.outputs.id }}
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build-and-upload:
-    name: Build and Upload
-    needs: create-release
+  build-and-release:
+    name: Build and Release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -79,20 +60,13 @@ jobs:
         cd target/${{ matrix.target }}/release
         7z a ${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
 
-    - name: Upload Release Asset (Unix)
-      if: matrix.os != 'windows-latest'
+    - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
       with:
-        files: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz
-        tag_name: ${{ github.ref }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Upload Release Asset (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip
-        tag_name: ${{ github.ref }}
+        files: |
+          target/${{ matrix.target }}/release/${{ matrix.asset_name }}.tar.gz
+          target/${{ matrix.target }}/release/${{ matrix.asset_name }}.zip
+        make_latest: true
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
