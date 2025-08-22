@@ -28,7 +28,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
 
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -39,6 +39,9 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
 
+    - name: Install clippy
+      run: rustup component add clippy
+      
     - name: Run clippy
       run: cargo clippy -- -D warnings
 
@@ -79,7 +82,7 @@ jobs:
         targets: ${{ matrix.target }}
 
     - name: Cache dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cargo/registry
@@ -91,7 +94,7 @@ jobs:
       run: cargo build --release --target ${{ matrix.target }}
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.asset_name }}
         path: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
