@@ -39,8 +39,10 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
 
-    - name: Install clippy
-      run: rustup component add clippy
+    - name: Install components
+      run: |
+        rustup component add clippy
+        rustup component add rustfmt
       
     - name: Run clippy
       run: cargo clippy -- -D warnings
