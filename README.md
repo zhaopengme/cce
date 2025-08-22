@@ -14,9 +14,31 @@
 
 ### Installation
 
+#### Option 1: One-Click Install (Recommended)
+```bash
+# Install with curl (supports Linux, macOS Intel & Apple Silicon)
+curl -sSL https://raw.githubusercontent.com/zhaopengme/cce/master/install.sh | bash
+```
+
+#### Option 2: Download from Releases
+```bash
+# Visit https://github.com/zhaopengme/cce/releases
+# Download the appropriate binary for your platform:
+# - cce-linux-x86_64.tar.gz (Linux)
+# - cce-macos-x86_64.tar.gz (macOS Intel)
+# - cce-macos-aarch64.tar.gz (macOS Apple Silicon)  
+# - cce-windows-x86_64.exe.zip (Windows)
+
+# Extract and install
+tar -xzf cce-*.tar.gz
+chmod +x cce
+mv cce ~/.local/bin/  # Make sure ~/.local/bin is in your PATH
+```
+
+#### Option 3: Build from Source
 ```bash
 # Clone the project
-git clone git@github.com:zhaopengme/cce.git
+git clone https://github.com/zhaopengme/cce.git
 cd cce
 
 # Build the project
@@ -24,6 +46,13 @@ cargo build --release
 
 # Install (optional)
 cargo install --path .
+```
+
+#### Option 4: Windows PowerShell
+```powershell
+# Download and run the PowerShell installer
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/zhaopengme/cce/master/install.ps1" -OutFile "install.ps1"
+.\install.ps1
 ```
 
 ### Setup Shell Integration
@@ -37,6 +66,8 @@ eval "$(cce shellenv)"
 # Then reload your shell
 source ~/.zshrc  # or source ~/.bashrc
 ```
+
+**Note**: If you used the one-click install script, it will automatically guide you through this setup process with detailed instructions for your specific shell.
 
 ### Basic Usage
 
@@ -179,7 +210,31 @@ echo $ANTHROPIC_BASE_URL     # Verify URL
 cp ~/.cce/config.toml ~/.cce/config.toml.backup
 ```
 
+## 📥 Platform Support
+
+| Platform | Architecture | Binary | Status |
+|----------|-------------|---------|---------|
+| Linux | x86_64 | `cce-linux-x86_64.tar.gz` | ✅ |
+| macOS | Intel (x86_64) | `cce-macos-x86_64.tar.gz` | ✅ |
+| macOS | Apple Silicon (ARM64) | `cce-macos-aarch64.tar.gz` | ✅ |
+| Windows | x86_64 | `cce-windows-x86_64.exe.zip` | ✅ |
+
+All releases include automated CI/CD testing across multiple platforms to ensure reliability.
+
 ## 🐛 Troubleshooting
+
+### Installation Issues
+If the one-click install fails:
+```bash
+# Check if curl is available
+curl --version
+
+# Check if your platform is supported
+uname -s && uname -m
+
+# Try manual installation from releases page
+# https://github.com/zhaopengme/cce/releases
+```
 
 ### Shell Integration Not Working
 Make sure you've added `eval "$(cce shellenv)"` to your shell configuration file and reloaded it:
@@ -190,6 +245,18 @@ source ~/.zshrc
 
 ### Environment Variables Not Set
 Run `cce check` to diagnose the issue and follow the suggestions.
+
+### PATH Issues
+If `cce` command is not found after installation:
+```bash
+# Add ~/.local/bin to your PATH
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Verify installation
+which cce
+cce --version
+```
 
 ### Configuration File Corrupted
 If the config file is corrupted, you can delete and recreate it:
