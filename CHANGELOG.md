@@ -1,0 +1,36 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2024-01-XX
+
+### Added
+- Initial release of CCE (Claude Config Environment)
+- Service provider management (`add`, `delete`, `list`)
+- Environment variable switching with `use` command
+- Shell integration with `shellenv` command for immediate effect
+- Configuration checking with `check` command
+- Support for `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` environment variables
+- Local TOML configuration storage in `~/.cce/config.toml`
+- Colorful CLI output with user-friendly messages
+- Built with Rust for high performance and reliability
+
+### Features
+- **Easy Switching**: Quickly switch between different Claude API service providers
+- **Shell Integration**: `eval "$(cce shellenv)"` for immediate environment variable effects
+- **Configuration Management**: Secure local storage of multiple service provider configurations
+- **User-Friendly Interface**: Intuitive command-line interface with colored output
+- **Cross-Platform**: Works on macOS, Linux, and Windows
+- **No Confirmation Prompts**: Streamlined workflow without unnecessary interruptions
+
+### Commands
+- `cce list` - List all configured service providers
+- `cce add <name> <api_url> <token>` - Add a new service provider
+- `cce delete <name>` - Remove a service provider
+- `cce use <name>` - Switch to a service provider (with shell integration)
+- `cce use <name> --eval` - Output environment variables for eval
+- `cce check` - Verify current environment variable status
+- `cce shellenv` - Output shell integration function
