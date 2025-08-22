@@ -15,15 +15,19 @@ fn main() -> Result<()> {
         Commands::List => {
             ProviderManager::list_providers(&config)?;
         }
-        
-        Commands::Add { name, api_url, token } => {
+
+        Commands::Add {
+            name,
+            api_url,
+            token,
+        } => {
             ProviderManager::add_provider(&mut config, name, api_url, token)?;
         }
-        
+
         Commands::Delete { name } => {
             ProviderManager::remove_provider(&mut config, &name)?;
         }
-        
+
         Commands::Use { name, eval } => {
             if eval {
                 ProviderManager::use_provider_eval(&mut config, &name)?;
@@ -31,11 +35,11 @@ fn main() -> Result<()> {
                 ProviderManager::use_provider(&mut config, &name)?;
             }
         }
-        
+
         Commands::Check => {
             ProviderManager::check_environment(&config)?;
         }
-        
+
         Commands::Shellenv => {
             ProviderManager::output_shellenv()?;
         }

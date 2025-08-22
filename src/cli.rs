@@ -15,7 +15,7 @@ pub struct Cli {
 pub enum Commands {
     /// List all service providers
     List,
-    
+
     /// Add a service provider
     Add {
         /// Provider name
@@ -25,13 +25,13 @@ pub enum Commands {
         /// API Token
         token: String,
     },
-    
+
     /// Delete the specified service provider
     Delete {
         /// Name of provider to delete
         name: String,
     },
-    
+
     /// Use the specified service provider
     Use {
         /// Name of provider to use
@@ -40,10 +40,10 @@ pub enum Commands {
         #[arg(long)]
         eval: bool,
     },
-    
+
     /// Check current environment variable status
     Check,
-    
+
     /// Output shell integration function
     Shellenv,
 }
