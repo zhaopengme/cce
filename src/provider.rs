@@ -16,8 +16,7 @@ impl ProviderManager {
 
         for (name, provider) in &config.providers {
             let is_current = config.current_provider
-                .as_ref()
-                .map_or(false, |current| current == name);
+                .as_ref() == Some(name);
 
             let marker = if is_current { "●".green() } else { "○".white() };
             let name_color = if is_current { name.green().bold() } else { name.white() };

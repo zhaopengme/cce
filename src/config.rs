@@ -79,6 +79,7 @@ impl Config {
         }
     }
     
+    #[allow(dead_code)]
     pub fn get_current_provider(&self) -> Option<&Provider> {
         self.current_provider
             .as_ref()
