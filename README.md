@@ -16,7 +16,7 @@
 
 ```bash
 # Clone the project
-git clone git@github.com:zhaopengme/cce.git
+git clone https://github.com/zhaopengme/cce.git
 cd cce
 
 # Build the project
@@ -28,8 +28,19 @@ cargo install --path .
 
 ### Setup Shell Integration
 
-The key feature of CCE is the ability to make `cce use` commands take effect immediately in your current terminal. This requires a one-time setup:
+The key feature of CCE is the ability to make `cce use` and `cce clear` commands take effect immediately in your current terminal.
 
+**🚀 Automatic Setup (Recommended):**
+```bash
+cce install
+```
+
+This command will automatically:
+- 🔍 Detect your shell (bash, zsh, fish)
+- ✅ Add shell integration to your configuration file
+- 💡 Provide instructions to activate the integration
+
+**🔧 Manual Setup (Alternative):**
 ```bash
 # Add this line to your shell configuration file (~/.zshrc, ~/.bashrc, etc.)
 eval "$(cce shellenv)"
@@ -76,7 +87,14 @@ cce use anthropic
 eval "$(cce use anthropic --eval)"
 ```
 
-#### 5. Check environment variable status
+#### 5. Clear environment variables (switch back to official Claude client)
+```bash
+cce clear
+```
+
+This will unset `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL`, allowing you to use your Claude Pro/Max subscription with the official client.
+
+#### 6. Check environment variable status
 ```bash
 cce check
 ```
@@ -121,6 +139,44 @@ Verify current environment variable status:
 - Display current environment variables
 - Compare CCE configuration with actual environment variables
 - Provide suggestions when there are mismatches
+
+### `cce clear [--eval]`
+Clear environment variables to switch back to using the official Claude client:
+
+**Normal mode** (`cce clear`):
+- 🧹 Display complete clearing information
+- 💡 Provide unset commands for copying
+
+**Eval mode** (`cce clear --eval`):
+- ⚡ Output only unset commands
+- 🔧 Perfect for use with `eval` command
+- 💻 Ideal for scripts and automation
+
+This command will:
+- Unset `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` environment variables
+- Clear the current provider selection in configuration
+- Allow you to use your Claude Pro/Max subscription with the official client
+
+### `cce install [--force]`
+Automatically install shell integration for immediate environment variable effects:
+
+**Normal mode** (`cce install`):
+- 🔍 Detect your current shell (bash, zsh, fish)
+- ✅ Check if integration is already installed
+- 📝 Add integration to appropriate config file
+- 💡 Provide activation instructions
+
+**Force mode** (`cce install --force`):
+- 🔄 Force reinstall even if already present
+- 📝 Add integration regardless of existing setup
+
+This command supports:
+- **Bash**: Adds to `~/.bashrc`
+- **Zsh**: Adds to `~/.zshrc`  
+- **Fish**: Adds to `~/.config/fish/config.fish`
+- **Other shells**: Defaults to `~/.bashrc`
+
+After installation, restart your terminal or run `source ~/.zshrc` (or equivalent) to activate.
 
 ## 🔧 Configuration
 
