@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "cce",
     about = "Claude Config Environment - A tool for switching Claude environment variables",
-    version = "0.1.0"
+    version = "0.2.0"
 )]
 pub struct Cli {
     #[command(subcommand)]
@@ -46,6 +46,20 @@ pub enum Commands {
 
     /// Output shell integration function
     Shellenv,
+
+    /// Clear environment variables to use official Claude client
+    Clear {
+        /// Only output unset commands, no other info
+        #[arg(long)]
+        eval: bool,
+    },
+
+    /// Install shell integration for immediate environment variable effects
+    Install {
+        /// Force reinstall even if already installed
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 impl Cli {

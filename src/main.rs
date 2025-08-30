@@ -43,6 +43,18 @@ fn main() -> Result<()> {
         Commands::Shellenv => {
             ProviderManager::output_shellenv()?;
         }
+
+        Commands::Clear { eval } => {
+            if eval {
+                ProviderManager::clear_provider_eval(&mut config)?;
+            } else {
+                ProviderManager::clear_provider(&mut config)?;
+            }
+        }
+
+        Commands::Install { force } => {
+            ProviderManager::install_shell_integration(force)?;
+        }
     }
 
     Ok(())
