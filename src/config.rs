@@ -78,6 +78,10 @@ impl Config {
         }
     }
 
+    pub fn clear_current_provider(&mut self) {
+        self.current_provider = None;
+    }
+
     #[allow(dead_code)]
     pub fn get_current_provider(&self) -> Option<&Provider> {
         self.current_provider

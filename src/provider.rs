@@ -250,6 +250,168 @@ impl ProviderManager {
         Ok(())
     }
 
+    pub fn clear_provider(config: &mut Config) -> Result<()> {
+        // Check if there's a current provider to clear
+        if config.current_provider.is_none() {
+            println!(
+                "{} No service provider is currently active",
+                "ℹ️".blue()
+            );
+            return Ok(());
+        }
+
+        let previous_provider = config.current_provider.clone();
+        
+        // Clear current provider in config
+        config.clear_current_provider();
+        config.save()?;
+
+        if let Some(provider_name) = previous_provider {
+            println!(
+                "{} Cleared service provider configuration",
+                "🧹".green()
+            );
+            println!(
+                "{} Removed '{}' as the active provider",
+                "✓".green(),
+                provider_name.yellow()
+            );
+        }
+
+        println!();
+        println!(
+            "{} To take effect in current terminal, run:",
+            "💡".blue().bold()
+        );
+
+        Self::unset_environment_variables()?;
+
+        Ok(())
+    }
+
+    pub fn clear_provider_eval(config: &mut Config) -> Result<()> {
+        // Clear current provider in config
+        config.clear_current_provider();
+        config.save()?;
+
+        // Only output unset commands
+        Self::unset_environment_variables()?;
+
+        Ok(())
+    }
+
+    fn unset_environment_variables() -> Result<()> {
+        // Remove from current process environment
+        std::env::remove_var("ANTHROPIC_AUTH_TOKEN");
+        std::env::remove_var("ANTHROPIC_BASE_URL");
+
+        // Output unset commands for shell
+        println!("unset ANTHROPIC_AUTH_TOKEN");
+        println!("unset ANTHROPIC_BASE_URL");
+
+        Ok(())
+    }
+
+    pub fn install_shell_integration(force: bool) -> Result<()> {
+        use std::fs::{File, OpenOptions};
+        use std::io::{BufRead, BufReader, Write};
+
+        // Detect shell type
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+        let shell_name = shell.split('/').last().unwrap_or("bash");
+        
+        let (config_file, comment_prefix) = match shell_name {
+            "zsh" => ("~/.zshrc", "#"),
+            "bash" => ("~/.bashrc", "#"),
+            "fish" => ("~/.config/fish/config.fish", "#"),
+            _ => ("~/.bashrc", "#"),
+        };
+        
+        // Expand tilde
+        let config_path = if config_file.starts_with("~/") {
+            let home = dirs::home_dir()
+                .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
+            home.join(&config_file[2..])
+        } else {
+            std::path::PathBuf::from(config_file)
+        };
+
+        // Check if already installed
+        let integration_line = r#"eval "$(cce shellenv)""#;
+        let mut already_installed = false;
+        
+        if config_path.exists() {
+            let file = File::open(&config_path)?;
+            let reader = BufReader::new(file);
+            
+            for line in reader.lines() {
+                let line = line?;
+                let trimmed = line.trim();
+                // Skip commented lines
+                if !trimmed.starts_with('#') && trimmed == integration_line {
+                    already_installed = true;
+                    break;
+                }
+            }
+        }
+
+        if already_installed && !force {
+            println!(
+                "{} Shell integration is already installed in {}",
+                "ℹ️".blue(),
+                config_file.cyan()
+            );
+            println!(
+                "{} Use {} to reinstall",
+                "💡".blue(),
+                "cce install --force".yellow()
+            );
+            return Ok(());
+        }
+
+        // Create config directory if it doesn't exist (for fish)
+        if let Some(parent) = config_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        // Add shell integration
+        let mut file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&config_path)?;
+
+        let integration_block = format!(
+            r#"
+{} CCE Shell Integration
+{}"#,
+            comment_prefix, integration_line
+        );
+
+        writeln!(file, "{}", integration_block)?;
+
+        println!(
+            "{} Shell integration installed successfully!",
+            "✅".green()
+        );
+        println!(
+            "📄 Added to: {}", 
+            config_path.display().to_string().cyan()
+        );
+        println!();
+        println!(
+            "{} To activate in current terminal:",
+            "🔄".blue().bold()
+        );
+        println!("   {}", format!("source {}", config_file).yellow());
+        println!();
+        println!(
+            "{} Or restart your terminal for changes to take effect.",
+            "🆕".blue().bold()
+        );
+
+        Ok(())
+    }
+
     pub fn output_shellenv() -> Result<()> {
         // Get current executable path
         let current_exe =
@@ -267,6 +429,15 @@ impl ProviderManager {
             eval "$env_output"
             echo "⚡ Switched to service provider '$2'"
             echo "✅ Environment variables are now active in current terminal"
+        else
+            "$cce_binary" "$@"
+        fi
+    elif [[ "$1" == "clear" ]]; then
+        local env_output=$("$cce_binary" clear --eval 2>/dev/null)
+        if [[ $? -eq 0 && -n "$env_output" ]]; then
+            eval "$env_output"
+            echo "🧹 Cleared service provider configuration"
+            echo "✅ Environment variables are now unset in current terminal"
         else
             "$cce_binary" "$@"
         fi
