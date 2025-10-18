@@ -34,6 +34,9 @@ impl ProviderManager {
                 "    Token: {}****",
                 &provider.token[..provider.token.len().min(8)].dimmed()
             );
+            if let Some(ref model) = provider.model {
+                println!("    Model: {}", model.cyan());
+            }
 
             if is_current {
                 println!("    {}", "(currently active)".green().italic());
@@ -49,6 +52,7 @@ impl ProviderManager {
         name: String,
         api_url: String,
         token: String,
+        model: Option<String>,
     ) -> Result<()> {
         if config.providers.contains_key(&name) {
             println!(
@@ -58,7 +62,7 @@ impl ProviderManager {
             );
         }
 
-        config.add_provider(name.clone(), api_url, token);
+        config.add_provider(name.clone(), api_url, token, model);
         config.save()?;
 
         println!(
@@ -143,6 +147,14 @@ impl ProviderManager {
         println!("export ANTHROPIC_AUTH_TOKEN=\"{}\"", provider.token);
         println!("export ANTHROPIC_BASE_URL=\"{}\"", provider.api_url);
 
+        // Set model environment variables if model is specified
+        if let Some(ref model) = provider.model {
+            std::env::set_var("ANTHROPIC_MODEL", model);
+            std::env::set_var("ANTHROPIC_DEFAULT_HAIKU_MODEL", model);
+            println!("export ANTHROPIC_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
+        }
+
         Ok(())
     }
 
@@ -160,6 +172,12 @@ impl ProviderManager {
         // Only output environment variable commands
         println!("export ANTHROPIC_AUTH_TOKEN=\"{}\"", provider.token);
         println!("export ANTHROPIC_BASE_URL=\"{}\"", provider.api_url);
+
+        // Set model environment variables if model is specified
+        if let Some(ref model) = provider.model {
+            println!("export ANTHROPIC_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
+        }
 
         Ok(())
     }
@@ -304,10 +322,14 @@ impl ProviderManager {
         // Remove from current process environment
         std::env::remove_var("ANTHROPIC_AUTH_TOKEN");
         std::env::remove_var("ANTHROPIC_BASE_URL");
+        std::env::remove_var("ANTHROPIC_MODEL");
+        std::env::remove_var("ANTHROPIC_DEFAULT_HAIKU_MODEL");
 
         // Output unset commands for shell
         println!("unset ANTHROPIC_AUTH_TOKEN");
         println!("unset ANTHROPIC_BASE_URL");
+        println!("unset ANTHROPIC_MODEL");
+        println!("unset ANTHROPIC_DEFAULT_HAIKU_MODEL");
 
         Ok(())
     }

@@ -24,6 +24,9 @@ pub enum Commands {
         api_url: String,
         /// API Token
         token: String,
+        /// Model name (optional)
+        #[arg(short, long)]
+        model: Option<String>,
     },
 
     /// Delete the specified service provider

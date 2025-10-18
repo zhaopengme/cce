@@ -20,8 +20,9 @@ fn main() -> Result<()> {
             name,
             api_url,
             token,
+            model,
         } => {
-            ProviderManager::add_provider(&mut config, name, api_url, token)?;
+            ProviderManager::add_provider(&mut config, name, api_url, token, model)?;
         }
 
         Commands::Delete { name } => {
