@@ -89,11 +89,16 @@ cce list
 
 #### 2. Add a service provider
 ```bash
-cce add <name> <API_URL> <API_TOKEN>
+cce add <name> <API_URL> <API_TOKEN> [--model <MODEL_NAME>]
 
 # Examples
 cce add anthropic https://api.anthropic.com sk-ant-api03-xxxx
 cce add custom https://custom-claude-api.com custom-token-123
+
+# With model specification (v0.2.0+)
+cce add my-provider https://api.example.com/v1 sk-token-123 --model claude-3-5-sonnet-20250229
+# or using short option
+cce add my-provider https://api.example.com/v1 sk-token-123 -m claude-3-5-sonnet-20250229
 ```
 
 #### 3. Delete a service provider
@@ -142,13 +147,14 @@ Display all configured service providers with their status:
 - Masked token preview
 - Current active status
 
-### `cce add <name> <api_url> <token>`
+### `cce add <name> <api_url> <token> [--model <model>]`
 Add a new service provider:
 - `name`: Custom provider name
 - `api_url`: Claude API endpoint URL
 - `token`: API access token
+- `--model` / `-m`: Optional model name (v0.2.0+)
 
-If the provider already exists, it will be overwritten.
+If the provider already exists, it will be overwritten. When a model is specified, both `ANTHROPIC_MODEL` and `ANTHROPIC_DEFAULT_HAIKU_MODEL` environment variables will be exported when using this provider.
 
 ### `cce delete <name>`
 Remove the specified service provider. No confirmation required.
@@ -225,6 +231,12 @@ token = "sk-ant-api03-your-token-here"
 name = "custom"
 api_url = "https://custom-claude-api.com"
 token = "custom-token-123"
+
+[providers.my-provider]
+name = "my-provider"
+api_url = "https://api.example.com/v1"
+token = "sk-token-123"
+model = "claude-3-5-sonnet-20250229"
 ```
 
 ## 🌍 Environment Variables
@@ -232,6 +244,8 @@ token = "custom-token-123"
 After using `cce use` command, the following environment variables are automatically set:
 - `ANTHROPIC_AUTH_TOKEN`: API authentication token
 - `ANTHROPIC_BASE_URL`: API base URL
+- `ANTHROPIC_MODEL`: Model name (if specified with --model when adding provider)
+- `ANTHROPIC_DEFAULT_HAIKU_MODEL`: Default Haiku model (if specified with --model when adding provider)
 
 ## 💡 Usage Tips
 
