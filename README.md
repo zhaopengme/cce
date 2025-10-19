@@ -154,7 +154,7 @@ Add a new service provider:
 - `token`: API access token
 - `--model` / `-m`: Optional model name (v0.2.0+)
 
-If the provider already exists, it will be overwritten. When a model is specified, both `ANTHROPIC_MODEL` and `ANTHROPIC_DEFAULT_HAIKU_MODEL` environment variables will be exported when using this provider.
+If the provider already exists, it will be overwritten. When a model is specified, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and `ANTHROPIC_DEFAULT_HAIKU_MODEL` environment variables will be exported when using this provider.
 
 ### `cce delete <name>`
 Remove the specified service provider. No confirmation required.
@@ -190,7 +190,7 @@ Clear environment variables to switch back to using the official Claude client:
 - 💻 Ideal for scripts and automation
 
 This command will:
-- Unset `ANTHROPIC_AUTH_TOKEN` and `ANTHROPIC_BASE_URL` environment variables
+- Unset `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and `ANTHROPIC_DEFAULT_HAIKU_MODEL` environment variables
 - Clear the current provider selection in configuration
 - Allow you to use your Claude Pro/Max subscription with the official client
 
@@ -245,6 +245,8 @@ After using `cce use` command, the following environment variables are automatic
 - `ANTHROPIC_AUTH_TOKEN`: API authentication token
 - `ANTHROPIC_BASE_URL`: API base URL
 - `ANTHROPIC_MODEL`: Model name (if specified with --model when adding provider)
+- `ANTHROPIC_DEFAULT_OPUS_MODEL`: Default Opus model (if specified with --model when adding provider)
+- `ANTHROPIC_DEFAULT_SONNET_MODEL`: Default Sonnet model (if specified with --model when adding provider)
 - `ANTHROPIC_DEFAULT_HAIKU_MODEL`: Default Haiku model (if specified with --model when adding provider)
 
 ## 💡 Usage Tips

@@ -150,8 +150,12 @@ impl ProviderManager {
         // Set model environment variables if model is specified
         if let Some(ref model) = provider.model {
             std::env::set_var("ANTHROPIC_MODEL", model);
+            std::env::set_var("ANTHROPIC_DEFAULT_OPUS_MODEL", model);
+            std::env::set_var("ANTHROPIC_DEFAULT_SONNET_MODEL", model);
             std::env::set_var("ANTHROPIC_DEFAULT_HAIKU_MODEL", model);
             println!("export ANTHROPIC_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{}\"", model);
             println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
         }
 
@@ -176,6 +180,8 @@ impl ProviderManager {
         // Set model environment variables if model is specified
         if let Some(ref model) = provider.model {
             println!("export ANTHROPIC_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{}\"", model);
             println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
         }
 
@@ -323,12 +329,16 @@ impl ProviderManager {
         std::env::remove_var("ANTHROPIC_AUTH_TOKEN");
         std::env::remove_var("ANTHROPIC_BASE_URL");
         std::env::remove_var("ANTHROPIC_MODEL");
+        std::env::remove_var("ANTHROPIC_DEFAULT_OPUS_MODEL");
+        std::env::remove_var("ANTHROPIC_DEFAULT_SONNET_MODEL");
         std::env::remove_var("ANTHROPIC_DEFAULT_HAIKU_MODEL");
 
         // Output unset commands for shell
         println!("unset ANTHROPIC_AUTH_TOKEN");
         println!("unset ANTHROPIC_BASE_URL");
         println!("unset ANTHROPIC_MODEL");
+        println!("unset ANTHROPIC_DEFAULT_OPUS_MODEL");
+        println!("unset ANTHROPIC_DEFAULT_SONNET_MODEL");
         println!("unset ANTHROPIC_DEFAULT_HAIKU_MODEL");
 
         Ok(())
