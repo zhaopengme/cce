@@ -1,4 +1,5 @@
 # CCE - Claude Config Environment
+[中文版文档](readme_zh.md)
 
 🧙 A Claude environment variable switching tool written in Rust, allowing you to easily manage multiple Claude API service providers.
 
@@ -65,20 +66,30 @@ cce install
 ```
 
 This command will automatically:
-- 🔍 Detect your shell (bash, zsh, fish)
-- ✅ Add shell integration to your configuration file
-- 💡 Provide instructions to activate the integration
+- 🔍 Detect your shell (bash or zsh)
+- ✅ Append a CCE block to your shell profile
+- ⚡ Load the most recent provider every time a new terminal starts
+- 🪄 Wrap the `cce` command so `cce use` / `cce clear` update the current session instantly
 
-**🔧 Manual Setup (Alternative):**
+After installation completes, open a fresh terminal to pick up the changes. To activate immediately, run `source ~/.zshrc` or `source ~/.bashrc`.
+
+**🔧 Manual Setup (other shells or custom setups)**
 ```bash
-# Add this line to your shell configuration file (~/.zshrc, ~/.bashrc, etc.)
-eval "$(cce shellenv)"
+# Add this block to your shell configuration file (~/.zshrc, ~/.bashrc, etc.)
+if command -v cce >/dev/null 2>&1; then
+  if [[ -f "$HOME/.cce/config.toml" ]]; then
+    current_provider=$(awk -F'"' '/^current_provider/ {print $2; exit}' "$HOME/.cce/config.toml")
+    if [[ -n "$current_provider" ]]; then
+      eval "$(CCE_SHELL_INTEGRATION=1 cce use "$current_provider")"
+    fi
+  fi
+fi
 
-# Then reload your shell
-source ~/.zshrc  # or source ~/.bashrc
+# Optional: add the shortcut wrapper identical to the installer
+eval "$(cce shellenv)"
 ```
 
-**Note**: If you used the one-click install script, it will automatically guide you through this setup process with detailed instructions for your specific shell.
+**Note**: The Windows PowerShell installer writes the integration block to `$PROFILE` so each session automatically loads your last-used provider.
 
 ### Basic Usage
 
@@ -120,7 +131,7 @@ cce use anthropic
 
 **Without shell integration**:
 ```bash
-eval "$(cce use anthropic --eval)"
+eval "$(CCE_SHELL_INTEGRATION=1 cce use anthropic)"
 ```
 
 #### 5. Clear environment variables (switch back to official Claude client)
@@ -138,7 +149,7 @@ cce check
 ## 📋 Command Reference
 
 ### `cce shellenv`
-Outputs shell integration function. Add `eval "$(cce shellenv)"` to your shell configuration file for the best experience.
+Outputs the helper function the installer uses for bash/zsh. Run `eval "$(cce shellenv)"` if you need to install the wrapper manually or customize it.
 
 ### `cce list`
 Display all configured service providers with their status:
@@ -159,17 +170,14 @@ If the provider already exists, it will be overwritten. When a model is specifie
 ### `cce delete <name>`
 Remove the specified service provider. No confirmation required.
 
-### `cce use <name> [--eval]`
-Switch to the specified service provider:
+### `cce use <name>`
+Switch to the specified service provider. By default this command prints a short confirmation message.
 
-**Normal mode** (`cce use <name>`):
-- 📋 Display complete switching information
-- 💡 Provide environment variable commands for copying
+For scripts or shell integration, set `CCE_SHELL_INTEGRATION=1` to emit environment variable commands:
 
-**Eval mode** (`cce use <name> --eval`):
-- ⚡ Output only environment variable commands
-- 🔧 Perfect for use with `eval` command
-- 💻 Ideal for scripts and automation
+```bash
+eval "$(CCE_SHELL_INTEGRATION=1 cce use <name>)"
+```
 
 ### `cce check`
 Verify current environment variable status:
@@ -177,17 +185,14 @@ Verify current environment variable status:
 - Compare CCE configuration with actual environment variables
 - Provide suggestions when there are mismatches
 
-### `cce clear [--eval]`
-Clear environment variables to switch back to using the official Claude client:
+### `cce clear`
+Clear environment variables to switch back to using the official Claude client.
 
-**Normal mode** (`cce clear`):
-- 🧹 Display complete clearing information
-- 💡 Provide unset commands for copying
+For scripts or shell integration, set `CCE_SHELL_INTEGRATION=1` to emit unset commands:
 
-**Eval mode** (`cce clear --eval`):
-- ⚡ Output only unset commands
-- 🔧 Perfect for use with `eval` command
-- 💻 Ideal for scripts and automation
+```bash
+eval "$(CCE_SHELL_INTEGRATION=1 cce clear)"
+```
 
 This command will:
 - Unset `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_OPUS_MODEL`, `ANTHROPIC_DEFAULT_SONNET_MODEL`, and `ANTHROPIC_DEFAULT_HAIKU_MODEL` environment variables
@@ -198,7 +203,7 @@ This command will:
 Automatically install shell integration for immediate environment variable effects:
 
 **Normal mode** (`cce install`):
-- 🔍 Detect your current shell (bash, zsh, fish)
+- 🔍 Detect your current shell (bash or zsh)
 - ✅ Check if integration is already installed
 - 📝 Add integration to appropriate config file
 - 💡 Provide activation instructions
@@ -207,11 +212,11 @@ Automatically install shell integration for immediate environment variable effec
 - 🔄 Force reinstall even if already present
 - 📝 Add integration regardless of existing setup
 
-This command supports:
-- **Bash**: Adds to `~/.bashrc`
-- **Zsh**: Adds to `~/.zshrc`  
-- **Fish**: Adds to `~/.config/fish/config.fish`
-- **Other shells**: Defaults to `~/.bashrc`
+This command currently supports:
+- **Bash**: Appends to `~/.bashrc` (Linux) or `~/.bash_profile` (macOS)
+- **Zsh**: Appends to `~/.zshrc`
+- **PowerShell**: `install.ps1` writes to `$PROFILE`
+- Other shells: see the “Manual Setup” example above for guidance
 
 After installation, restart your terminal or run `source ~/.zshrc` (or equivalent) to activate.
 
@@ -265,7 +270,7 @@ cce use dev
 ### 2. Script Usage
 ```bash
 #!/bin/bash
-eval "$(cce use anthropic --eval)"
+eval "$(CCE_SHELL_INTEGRATION=1 cce use anthropic)"
 # Environment variables are now set and ready to use
 curl -H "Authorization: Bearer $ANTHROPIC_AUTH_TOKEN" "$ANTHROPIC_BASE_URL/v1/messages"
 ```
@@ -309,11 +314,15 @@ uname -s && uname -m
 ```
 
 ### Shell Integration Not Working
-Make sure you've added `eval "$(cce shellenv)"` to your shell configuration file and reloaded it:
-```bash
-echo 'eval "$(cce shellenv)"' >> ~/.zshrc
-source ~/.zshrc
-```
+- Re-run `cce install --force` to regenerate the integration block in your profile.
+- Verify the CCE block exists in your profile file:
+  ```bash
+  grep -n "CCE Shell Integration" ~/.zshrc
+  ```
+- If you need to refresh the current terminal manually, run:
+  ```bash
+  eval "$(CCE_SHELL_INTEGRATION=1 cce use <provider-name>)"
+  ```
 
 ### Environment Variables Not Set
 Run `cce check` to diagnose the issue and follow the suggestions.

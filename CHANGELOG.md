@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `cce add` now accepts an optional `--model` flag and exports both `ANTHROPIC_MODEL` and `ANTHROPIC_DEFAULT_HAIKU_MODEL` when selected.
-- Introduced `cce clear` (with `--eval`) to unset the active provider and remove Claude-specific environment variables.
+- Introduced `cce clear` to unset the active provider and remove Claude-specific environment variables.
 - Added `cce install` for one-command shell integration setup across bash, zsh, and fish, plus an enriched `cce shellenv` helper.
 
 ### Improved
@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cce add <name> <api_url> <token>` - Add a new service provider
 - `cce delete <name>` - Remove a service provider
 - `cce use <name>` - Switch to a service provider (with shell integration)
-- `cce use <name> --eval` - Output environment variables for eval
+- `CCE_SHELL_INTEGRATION=1 cce use <name>` - Emit environment variable exports for integration
+- `CCE_SHELL_INTEGRATION=1 cce clear` - Emit unset commands for integration
 - `cce check` - Verify current environment variable status
 - `cce shellenv` - Output shell integration function

@@ -39,9 +39,6 @@ pub enum Commands {
     Use {
         /// Name of provider to use
         name: String,
-        /// Only output environment variable commands, no other info
-        #[arg(long)]
-        eval: bool,
     },
 
     /// Check current environment variable status
@@ -51,11 +48,7 @@ pub enum Commands {
     Shellenv,
 
     /// Clear environment variables to use official Claude client
-    Clear {
-        /// Only output unset commands, no other info
-        #[arg(long)]
-        eval: bool,
-    },
+    Clear,
 
     /// Install shell integration for immediate environment variable effects
     Install {

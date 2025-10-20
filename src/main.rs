@@ -29,12 +29,8 @@ fn main() -> Result<()> {
             ProviderManager::remove_provider(&mut config, &name)?;
         }
 
-        Commands::Use { name, eval } => {
-            if eval {
-                ProviderManager::use_provider_eval(&mut config, &name)?;
-            } else {
-                ProviderManager::use_provider(&mut config, &name)?;
-            }
+        Commands::Use { name } => {
+            ProviderManager::use_provider(&mut config, &name)?;
         }
 
         Commands::Check => {
@@ -45,12 +41,8 @@ fn main() -> Result<()> {
             ProviderManager::output_shellenv()?;
         }
 
-        Commands::Clear { eval } => {
-            if eval {
-                ProviderManager::clear_provider_eval(&mut config)?;
-            } else {
-                ProviderManager::clear_provider(&mut config)?;
-            }
+        Commands::Clear => {
+            ProviderManager::clear_provider(&mut config)?;
         }
 
         Commands::Install { force } => {

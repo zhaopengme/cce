@@ -52,7 +52,13 @@ impl Config {
         Ok(())
     }
 
-    pub fn add_provider(&mut self, name: String, api_url: String, token: String, model: Option<String>) {
+    pub fn add_provider(
+        &mut self,
+        name: String,
+        api_url: String,
+        token: String,
+        model: Option<String>,
+    ) {
         let provider = Provider {
             name: name.clone(),
             api_url,

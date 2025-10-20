@@ -104,8 +104,10 @@ impl ProviderManager {
             return Ok(());
         }
 
+        let shell_mode = Self::shell_integration_active();
+
         if let Some(current) = &config.current_provider {
-            if current == name {
+            if current == name && !shell_mode {
                 println!(
                     "{} Already using service provider '{}'",
                     "ℹ️".blue(),
@@ -121,68 +123,17 @@ impl ProviderManager {
         config.set_current_provider(name);
         config.save()?;
 
-        println!(
-            "{} Switched to service provider '{}'",
-            "🔄".green(),
-            name.green().bold()
-        );
-        println!("  API URL: {}", provider.api_url.cyan());
-        println!();
-        println!(
-            "{} To take effect in current terminal, run:",
-            "💡".blue().bold()
-        );
+        Self::apply_environment_variables(&provider)?;
 
-        Self::set_environment_variables(&provider)?;
-
-        Ok(())
-    }
-
-    fn set_environment_variables(provider: &Provider) -> Result<()> {
-        // Immediately set environment variables for current process
-        std::env::set_var("ANTHROPIC_AUTH_TOKEN", &provider.token);
-        std::env::set_var("ANTHROPIC_BASE_URL", &provider.api_url);
-
-        // Output environment variable commands that can be executed by shell
-        println!("export ANTHROPIC_AUTH_TOKEN=\"{}\"", provider.token);
-        println!("export ANTHROPIC_BASE_URL=\"{}\"", provider.api_url);
-
-        // Set model environment variables if model is specified
-        if let Some(ref model) = provider.model {
-            std::env::set_var("ANTHROPIC_MODEL", model);
-            std::env::set_var("ANTHROPIC_DEFAULT_OPUS_MODEL", model);
-            std::env::set_var("ANTHROPIC_DEFAULT_SONNET_MODEL", model);
-            std::env::set_var("ANTHROPIC_DEFAULT_HAIKU_MODEL", model);
-            println!("export ANTHROPIC_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
-        }
-
-        Ok(())
-    }
-
-    pub fn use_provider_eval(config: &mut Config, name: &str) -> Result<()> {
-        if !config.providers.contains_key(name) {
-            eprintln!("# Error: Service provider '{}' does not exist", name);
-            return Ok(());
-        }
-
-        let provider = config.providers.get(name).unwrap().clone();
-
-        config.set_current_provider(name);
-        config.save()?;
-
-        // Only output environment variable commands
-        println!("export ANTHROPIC_AUTH_TOKEN=\"{}\"", provider.token);
-        println!("export ANTHROPIC_BASE_URL=\"{}\"", provider.api_url);
-
-        // Set model environment variables if model is specified
-        if let Some(ref model) = provider.model {
-            println!("export ANTHROPIC_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
+        if shell_mode {
+            Self::emit_export_commands(&provider);
+        } else {
+            println!(
+                "{} Switched to service provider '{}'",
+                "🔄".green(),
+                name.green().bold()
+            );
+            println!("  API URL: {}", provider.api_url.cyan());
         }
 
         Ok(())
@@ -277,54 +228,39 @@ impl ProviderManager {
     pub fn clear_provider(config: &mut Config) -> Result<()> {
         // Check if there's a current provider to clear
         if config.current_provider.is_none() {
-            println!(
-                "{} No service provider is currently active",
-                "ℹ️".blue()
-            );
+            println!("{} No service provider is currently active", "ℹ️".blue());
             return Ok(());
         }
 
         let previous_provider = config.current_provider.clone();
-        
+
         // Clear current provider in config
         config.clear_current_provider();
         config.save()?;
 
-        if let Some(provider_name) = previous_provider {
-            println!(
-                "{} Cleared service provider configuration",
-                "🧹".green()
-            );
-            println!(
-                "{} Removed '{}' as the active provider",
-                "✓".green(),
-                provider_name.yellow()
-            );
+        let shell_mode = Self::shell_integration_active();
+
+        if !shell_mode {
+            if let Some(provider_name) = previous_provider {
+                println!("{} Cleared service provider configuration", "🧹".green());
+                println!(
+                    "{} Removed '{}' as the active provider",
+                    "✓".green(),
+                    provider_name.yellow()
+                );
+            }
         }
 
-        println!();
-        println!(
-            "{} To take effect in current terminal, run:",
-            "💡".blue().bold()
-        );
+        Self::clear_environment_variables(shell_mode)?;
 
-        Self::unset_environment_variables()?;
+        if shell_mode {
+            Self::emit_unset_commands();
+        }
 
         Ok(())
     }
 
-    pub fn clear_provider_eval(config: &mut Config) -> Result<()> {
-        // Clear current provider in config
-        config.clear_current_provider();
-        config.save()?;
-
-        // Only output unset commands
-        Self::unset_environment_variables()?;
-
-        Ok(())
-    }
-
-    fn unset_environment_variables() -> Result<()> {
+    fn clear_environment_variables(shell_mode: bool) -> Result<()> {
         // Remove from current process environment
         std::env::remove_var("ANTHROPIC_AUTH_TOKEN");
         std::env::remove_var("ANTHROPIC_BASE_URL");
@@ -333,6 +269,29 @@ impl ProviderManager {
         std::env::remove_var("ANTHROPIC_DEFAULT_SONNET_MODEL");
         std::env::remove_var("ANTHROPIC_DEFAULT_HAIKU_MODEL");
 
+        if !shell_mode {
+            println!(
+                "{}",
+                "Environment variables cleared from current session".green()
+            );
+        }
+
+        Ok(())
+    }
+
+    fn emit_export_commands(provider: &Provider) {
+        println!("export ANTHROPIC_AUTH_TOKEN=\"{}\"", provider.token);
+        println!("export ANTHROPIC_BASE_URL=\"{}\"", provider.api_url);
+
+        if let Some(ref model) = provider.model {
+            println!("export ANTHROPIC_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{}\"", model);
+            println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
+        }
+    }
+
+    fn emit_unset_commands() {
         // Output unset commands for shell
         println!("unset ANTHROPIC_AUTH_TOKEN");
         println!("unset ANTHROPIC_BASE_URL");
@@ -340,8 +299,28 @@ impl ProviderManager {
         println!("unset ANTHROPIC_DEFAULT_OPUS_MODEL");
         println!("unset ANTHROPIC_DEFAULT_SONNET_MODEL");
         println!("unset ANTHROPIC_DEFAULT_HAIKU_MODEL");
+    }
+
+    fn apply_environment_variables(provider: &Provider) -> Result<()> {
+        // Immediately set environment variables for current process
+        std::env::set_var("ANTHROPIC_AUTH_TOKEN", &provider.token);
+        std::env::set_var("ANTHROPIC_BASE_URL", &provider.api_url);
+
+        // Set model environment variables if model is specified
+        if let Some(ref model) = provider.model {
+            std::env::set_var("ANTHROPIC_MODEL", model);
+            std::env::set_var("ANTHROPIC_DEFAULT_OPUS_MODEL", model);
+            std::env::set_var("ANTHROPIC_DEFAULT_SONNET_MODEL", model);
+            std::env::set_var("ANTHROPIC_DEFAULT_HAIKU_MODEL", model);
+        }
 
         Ok(())
+    }
+
+    fn shell_integration_active() -> bool {
+        std::env::var("CCE_SHELL_INTEGRATION")
+            .map(|v| v == "1")
+            .unwrap_or(false)
     }
 
     pub fn install_shell_integration(force: bool) -> Result<()> {
@@ -351,14 +330,14 @@ impl ProviderManager {
         // Detect shell type
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
         let shell_name = shell.split('/').last().unwrap_or("bash");
-        
+
         let (config_file, comment_prefix) = match shell_name {
             "zsh" => ("~/.zshrc", "#"),
             "bash" => ("~/.bashrc", "#"),
             "fish" => ("~/.config/fish/config.fish", "#"),
             _ => ("~/.bashrc", "#"),
         };
-        
+
         // Expand tilde
         let config_path = if config_file.starts_with("~/") {
             let home = dirs::home_dir()
@@ -371,11 +350,11 @@ impl ProviderManager {
         // Check if already installed
         let integration_line = r#"eval "$(cce shellenv)""#;
         let mut already_installed = false;
-        
+
         if config_path.exists() {
             let file = File::open(&config_path)?;
             let reader = BufReader::new(file);
-            
+
             for line in reader.lines() {
                 let line = line?;
                 let trimmed = line.trim();
@@ -421,19 +400,10 @@ impl ProviderManager {
 
         writeln!(file, "{}", integration_block)?;
 
-        println!(
-            "{} Shell integration installed successfully!",
-            "✅".green()
-        );
-        println!(
-            "📄 Added to: {}", 
-            config_path.display().to_string().cyan()
-        );
+        println!("{} Shell integration installed successfully!", "✅".green());
+        println!("📄 Added to: {}", config_path.display().to_string().cyan());
         println!();
-        println!(
-            "{} To activate in current terminal:",
-            "🔄".blue().bold()
-        );
+        println!("{} To activate in current terminal:", "🔄".blue().bold());
         println!("   {}", format!("source {}", config_file).yellow());
         println!();
         println!(
@@ -456,7 +426,8 @@ impl ProviderManager {
     local cce_binary="{}"
     
     if [[ "$1" == "use" && -n "$2" ]]; then
-        local env_output=$("$cce_binary" use "$2" --eval 2>/dev/null)
+        local env_output
+        env_output=$(CCE_SHELL_INTEGRATION=1 "$cce_binary" use "$2" 2>/dev/null)
         if [[ $? -eq 0 && -n "$env_output" ]]; then
             eval "$env_output"
             echo "⚡ Switched to service provider '$2'"
@@ -465,7 +436,8 @@ impl ProviderManager {
             "$cce_binary" "$@"
         fi
     elif [[ "$1" == "clear" ]]; then
-        local env_output=$("$cce_binary" clear --eval 2>/dev/null)
+        local env_output
+        env_output=$(CCE_SHELL_INTEGRATION=1 "$cce_binary" clear 2>/dev/null)
         if [[ $? -eq 0 && -n "$env_output" ]]; then
             eval "$env_output"
             echo "🧹 Cleared service provider configuration"

@@ -160,6 +160,11 @@ show_path_instructions() {
 
 # Show usage instructions
 show_usage() {
+    local profile
+    if ! profile=$(detect_shell_profile 2>/dev/null); then
+        profile=""
+    fi
+
     echo ""
     print_success "CCE installation completed!"
     echo ""
@@ -171,13 +176,132 @@ show_usage() {
     echo "  cce check                    - Check environment variable status"
     echo "  cce --help                   - Show detailed help"
     echo ""
-    print_status "Shell Integration Setup:"
-    echo -e "${YELLOW}Add this to your shell profile (~/.bashrc, ~/.zshrc, etc.):${NC}"
-    echo 'eval "$(cce shellenv)"'
+    print_status "Shell integration:"
+    echo -e "${YELLOW}Installer has configured automatic provider loading for your shell.${NC}"
+    echo "Open a new terminal to apply the changes."
+    if [[ -n "$profile" ]]; then
+        echo "To apply immediately, run:"
+        echo "  source \"$profile\""
+    fi
     echo ""
     print_status "Quick test:"
     echo "cce --version"
     echo ""
+}
+
+detect_shell_profile() {
+    local shell_name profile
+    shell_name=$(basename "${SHELL:-}")
+
+    if [[ -z "$shell_name" ]]; then
+        if [[ "$(uname -s)" == "Darwin" ]]; then
+            shell_name="zsh"
+        else
+            shell_name="bash"
+        fi
+    fi
+
+    case "$shell_name" in
+        zsh) profile="$HOME/.zshrc" ;;
+        bash)
+            if [[ "$(uname -s)" == "Darwin" ]]; then
+                profile="$HOME/.bash_profile"
+            else
+                profile="$HOME/.bashrc"
+            fi
+            ;;
+        *)
+            return 1
+    esac
+
+    echo "$profile"
+    return 0
+}
+
+remove_existing_integration() {
+    local file="$1"
+    [[ -f "$file" ]] || return 0
+
+    if grep -Fq ">>> CCE Shell Integration >>>" "$file"; then
+        if sed --version >/dev/null 2>&1; then
+            sed -i '/# >>> CCE Shell Integration >>>/,/# <<< CCE Shell Integration <<</d' "$file"
+        else
+            sed -i '' '/# >>> CCE Shell Integration >>>/,/# <<< CCE Shell Integration <<</d' "$file"
+        fi
+    fi
+}
+
+append_shell_integration() {
+    local profile="$1"
+    mkdir -p "$(dirname "$profile")"
+    touch "$profile"
+
+    cat <<'EOF' >>"$profile"
+# >>> CCE Shell Integration >>>
+if command -v cce >/dev/null 2>&1; then
+  _cce_binary="$(command -v cce)"
+
+  cce() {
+    if [[ "$1" == "use" && -n "$2" ]]; then
+      local _output
+      _output=$(CCE_SHELL_INTEGRATION=1 "$_cce_binary" use "$2" 2>/dev/null)
+      if [[ $? -eq 0 && -n "$_output" ]]; then
+        eval "$_output"
+        echo "⚡ Switched to service provider '$2'"
+        echo "✅ Environment variables are now active in current terminal"
+        return 0
+      fi
+    elif [[ "$1" == "clear" ]]; then
+      local _output
+      _output=$(CCE_SHELL_INTEGRATION=1 "$_cce_binary" clear 2>/dev/null)
+      if [[ $? -eq 0 && -n "$_output" ]]; then
+        eval "$_output"
+        echo "🧹 Cleared service provider configuration"
+        echo "✅ Environment variables are now unset in current terminal"
+        return 0
+      fi
+    fi
+
+    "$_cce_binary" "$@"
+  }
+
+  __cce_apply_current_provider() {
+    local _cfg="$HOME/.cce/config.toml"
+    if [[ -f "$_cfg" ]]; then
+      local _provider
+      _provider=$(awk -F'"' '/^current_provider/ {print $2; exit}' "$_cfg")
+      if [[ -n "$_provider" ]]; then
+        local _boot_output
+        _boot_output=$(CCE_SHELL_INTEGRATION=1 "$_cce_binary" use "$_provider" 2>/dev/null)
+        if [[ $? -eq 0 && -n "$_boot_output" ]]; then
+          eval "$_boot_output"
+        fi
+      fi
+    fi
+  }
+
+  __cce_apply_current_provider
+  unset -f __cce_apply_current_provider
+fi
+# <<< CCE Shell Integration <<<
+EOF
+}
+
+configure_shell_integration() {
+    local profile status
+    profile=$(detect_shell_profile 2>/dev/null)
+    status=$?
+    if [[ $status -ne 0 || -z "$profile" ]]; then
+        print_warning "Automatic shell integration is supported for bash and zsh shells. Please configure other shells manually."
+        return
+    fi
+
+    print_status "Configuring shell integration at ${profile}..."
+
+    remove_existing_integration "$profile"
+    append_shell_integration "$profile"
+
+    print_success "Shell integration script added to ${profile}"
 }
 
 # Main installation process
@@ -197,6 +321,9 @@ main() {
     
     # Install
     install_cce "$platform" "$version"
+    
+    # Configure shell integration
+    configure_shell_integration
     
     # Check PATH and show instructions
     if ! check_path; then
