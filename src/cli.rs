@@ -15,6 +15,9 @@ pub struct Cli {
 pub enum Commands {
     /// List all service providers
     List,
+    #[command(alias = "ls")]
+    /// List all service providers (alias)
+    Ls,
 
     /// Add a service provider
     Add {
@@ -31,6 +34,12 @@ pub enum Commands {
 
     /// Delete the specified service provider
     Delete {
+        /// Name of provider to delete
+        name: String,
+    },
+    #[command(alias = "del")]
+    /// Delete the specified service provider (alias)
+    Del {
         /// Name of provider to delete
         name: String,
     },

@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     let mut config = Config::load()?;
 
     match cli.command {
-        Commands::List => {
+        Commands::List | Commands::Ls => {
             ProviderManager::list_providers(&config)?;
         }
 
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
             ProviderManager::add_provider(&mut config, name, api_url, token, model)?;
         }
 
-        Commands::Delete { name } => {
+        Commands::Delete { name } | Commands::Del { name } => {
             ProviderManager::remove_provider(&mut config, &name)?;
         }
 
