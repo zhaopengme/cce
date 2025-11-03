@@ -1,6 +1,7 @@
 mod cli;
 mod config;
 mod provider;
+mod tui;
 
 use anyhow::Result;
 use cli::{Cli, Commands};
@@ -12,7 +13,7 @@ fn main() -> Result<()> {
     let mut config = Config::load()?;
 
     match cli.command {
-        Commands::List | Commands::Ls => {
+        Commands::List => {
             ProviderManager::list_providers(&config)?;
         }
 
@@ -25,7 +26,7 @@ fn main() -> Result<()> {
             ProviderManager::add_provider(&mut config, name, api_url, token, model)?;
         }
 
-        Commands::Delete { name } | Commands::Del { name } => {
+        Commands::Delete { name } => {
             ProviderManager::remove_provider(&mut config, &name)?;
         }
 
@@ -47,6 +48,10 @@ fn main() -> Result<()> {
 
         Commands::Install { force } => {
             ProviderManager::install_shell_integration(force)?;
+        }
+
+        Commands::Tui => {
+            tui::run_tui(config)?;
         }
     }
 
