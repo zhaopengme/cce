@@ -4,7 +4,12 @@
       "Bash(cargo check:*)",
       "Bash(cargo test:*)",
       "Bash(cargo run:*)",
-      "Bash(cargo fmt:*)"
+      "Bash(cargo fmt:*)",
+      "Bash(echo:*)",
+      "Bash(strace:*)",
+      "Bash(rustc:*)",
+      "Bash(./test_env:*)",
+      "Bash(CCE_SHELL_INTEGRATION=1 cargo run:*)"
     ],
     "deny": [],
     "ask": []
