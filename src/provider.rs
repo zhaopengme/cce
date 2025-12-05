@@ -1,4 +1,5 @@
 use crate::config::{Config, Provider};
+use crate::constants::*;
 use anyhow::Result;
 use colored::*;
 
@@ -117,13 +118,17 @@ impl ProviderManager {
             }
         }
 
-        let provider = config.providers.get(name).unwrap().clone();
+        let provider = config
+            .providers
+            .get(name)
+            .expect("Provider should exist after check")
+            .clone();
 
         // Set environment variables
         config.set_current_provider(name);
         config.save()?;
 
-        Self::apply_environment_variables(&provider)?;
+        set_provider_env_vars(&provider);
 
         if shell_mode {
             Self::emit_export_commands(&provider);
@@ -147,8 +152,8 @@ impl ProviderManager {
         println!();
 
         // Check current environment variables
-        let current_api_key = std::env::var("ANTHROPIC_AUTH_TOKEN");
-        let current_api_url = std::env::var("ANTHROPIC_BASE_URL");
+        let current_api_key = std::env::var(ENV_AUTH_TOKEN);
+        let current_api_url = std::env::var(ENV_BASE_URL);
 
         println!("{}", "Current environment variables:".cyan().bold());
         match &current_api_key {
@@ -158,19 +163,19 @@ impl ProviderManager {
                 } else {
                     "****".to_string()
                 };
-                println!("  ANTHROPIC_AUTH_TOKEN: {}", masked_key.green());
+                println!("  {}: {}", ENV_AUTH_TOKEN, masked_key.green());
             }
             Err(_) => {
-                println!("  ANTHROPIC_AUTH_TOKEN: {}", "Not set".red());
+                println!("  {}: {}", ENV_AUTH_TOKEN, "Not set".red());
             }
         }
 
         match &current_api_url {
             Ok(url) => {
-                println!("  ANTHROPIC_BASE_URL: {}", url.green());
+                println!("  {}: {}", ENV_BASE_URL, url.green());
             }
             Err(_) => {
-                println!("  ANTHROPIC_BASE_URL: {}", "Not set".red());
+                println!("  {}: {}", ENV_BASE_URL, "Not set".red());
             }
         }
 
@@ -251,23 +256,7 @@ impl ProviderManager {
             }
         }
 
-        Self::clear_environment_variables(shell_mode)?;
-
-        if shell_mode {
-            Self::emit_unset_commands();
-        }
-
-        Ok(())
-    }
-
-    fn clear_environment_variables(shell_mode: bool) -> Result<()> {
-        // Remove from current process environment
-        std::env::remove_var("ANTHROPIC_AUTH_TOKEN");
-        std::env::remove_var("ANTHROPIC_BASE_URL");
-        std::env::remove_var("ANTHROPIC_MODEL");
-        std::env::remove_var("ANTHROPIC_DEFAULT_OPUS_MODEL");
-        std::env::remove_var("ANTHROPIC_DEFAULT_SONNET_MODEL");
-        std::env::remove_var("ANTHROPIC_DEFAULT_HAIKU_MODEL");
+        clear_all_env_vars();
 
         if !shell_mode {
             println!(
@@ -276,49 +265,24 @@ impl ProviderManager {
             );
         }
 
+        if shell_mode {
+            Self::emit_unset_commands();
+        }
+
         Ok(())
     }
 
     fn emit_export_commands(provider: &Provider) {
-        println!("export ANTHROPIC_AUTH_TOKEN=\"{}\"", provider.token);
-        println!("export ANTHROPIC_BASE_URL=\"{}\"", provider.api_url);
-
-        if let Some(ref model) = provider.model {
-            println!("export ANTHROPIC_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_OPUS_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_SONNET_MODEL=\"{}\"", model);
-            println!("export ANTHROPIC_DEFAULT_HAIKU_MODEL=\"{}\"", model);
-        }
+        println!("{}", generate_export_commands(provider));
     }
 
     fn emit_unset_commands() {
         // Output unset commands for shell
-        println!("unset ANTHROPIC_AUTH_TOKEN");
-        println!("unset ANTHROPIC_BASE_URL");
-        println!("unset ANTHROPIC_MODEL");
-        println!("unset ANTHROPIC_DEFAULT_OPUS_MODEL");
-        println!("unset ANTHROPIC_DEFAULT_SONNET_MODEL");
-        println!("unset ANTHROPIC_DEFAULT_HAIKU_MODEL");
-    }
-
-    fn apply_environment_variables(provider: &Provider) -> Result<()> {
-        // Immediately set environment variables for current process
-        std::env::set_var("ANTHROPIC_AUTH_TOKEN", &provider.token);
-        std::env::set_var("ANTHROPIC_BASE_URL", &provider.api_url);
-
-        // Set model environment variables if model is specified
-        if let Some(ref model) = provider.model {
-            std::env::set_var("ANTHROPIC_MODEL", model);
-            std::env::set_var("ANTHROPIC_DEFAULT_OPUS_MODEL", model);
-            std::env::set_var("ANTHROPIC_DEFAULT_SONNET_MODEL", model);
-            std::env::set_var("ANTHROPIC_DEFAULT_HAIKU_MODEL", model);
-        }
-
-        Ok(())
+        println!("{}", generate_unset_commands());
     }
 
     fn shell_integration_active() -> bool {
-        std::env::var("CCE_SHELL_INTEGRATION")
+        std::env::var(ENV_SHELL_INTEGRATION)
             .map(|v| v == "1")
             .unwrap_or(false)
     }

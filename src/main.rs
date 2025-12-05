@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod constants;
 mod provider;
 mod tui;
 

@@ -1,4 +1,5 @@
 use crate::config::{Config, Provider};
+use crate::constants::*;
 use anyhow::Result;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
@@ -107,15 +108,13 @@ impl TuiApp {
             self.config.save()?;
 
             // Set environment variables
-            std::env::set_var("ANTHROPIC_AUTH_TOKEN", &token);
-            std::env::set_var("ANTHROPIC_BASE_URL", &api_url);
-
-            if let Some(ref model) = model {
-                std::env::set_var("ANTHROPIC_MODEL", model);
-                std::env::set_var("ANTHROPIC_DEFAULT_OPUS_MODEL", model);
-                std::env::set_var("ANTHROPIC_DEFAULT_SONNET_MODEL", model);
-                std::env::set_var("ANTHROPIC_DEFAULT_HAIKU_MODEL", model);
-            }
+            let provider = Provider {
+                name: name.clone(),
+                api_url: api_url.clone(),
+                token: token.clone(),
+                model: model.clone(),
+            };
+            set_provider_env_vars(&provider);
 
             self.message = Some(format!("Switched to provider '{}'", name));
             self.message_is_error = false;
@@ -127,12 +126,7 @@ impl TuiApp {
         self.config.clear_current_provider();
         self.config.save()?;
 
-        std::env::remove_var("ANTHROPIC_AUTH_TOKEN");
-        std::env::remove_var("ANTHROPIC_BASE_URL");
-        std::env::remove_var("ANTHROPIC_MODEL");
-        std::env::remove_var("ANTHROPIC_DEFAULT_OPUS_MODEL");
-        std::env::remove_var("ANTHROPIC_DEFAULT_SONNET_MODEL");
-        std::env::remove_var("ANTHROPIC_DEFAULT_HAIKU_MODEL");
+        clear_all_env_vars();
 
         self.message = Some("Cleared current provider".to_string());
         self.message_is_error = false;
@@ -150,7 +144,8 @@ impl TuiApp {
                 self.list_state.select(None);
             } else if let Some(selected) = self.list_state.selected() {
                 if selected >= self.config.providers.len() {
-                    self.list_state.select(Some(self.config.providers.len() - 1));
+                    self.list_state
+                        .select(Some(self.config.providers.len() - 1));
                 }
             }
 
@@ -196,84 +191,82 @@ impl TuiApp {
 
     fn handle_input(&mut self, key: KeyCode, modifiers: KeyModifiers) -> Result<bool> {
         match &mut self.input_mode {
-            InputMode::Normal => {
-                match key {
-                    KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
-                    KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
-                    KeyCode::Down | KeyCode::Char('j') => self.next(),
-                    KeyCode::Up | KeyCode::Char('k') => self.previous(),
-                    KeyCode::Enter | KeyCode::Char('u') => self.use_provider()?,
-                    KeyCode::Char('a') => {
-                        self.input_mode = InputMode::AddProvider(AddProviderState::default());
+            InputMode::Normal => match key {
+                KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
+                KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => return Ok(true),
+                KeyCode::Down | KeyCode::Char('j') => self.next(),
+                KeyCode::Up | KeyCode::Char('k') => self.previous(),
+                KeyCode::Enter | KeyCode::Char('u') => self.use_provider()?,
+                KeyCode::Char('a') => {
+                    self.input_mode = InputMode::AddProvider(AddProviderState::default());
+                    self.message = None;
+                }
+                KeyCode::Char('d') => {
+                    if self.get_selected_provider().is_some() {
+                        self.input_mode = InputMode::DeleteConfirm;
                         self.message = None;
                     }
-                    KeyCode::Char('d') => {
-                        if self.get_selected_provider().is_some() {
-                            self.input_mode = InputMode::DeleteConfirm;
-                            self.message = None;
-                        }
-                    }
-                    KeyCode::Char('c') => self.clear_provider()?,
-                    _ => {}
                 }
-            }
-            InputMode::AddProvider(state) => {
-                match key {
-                    KeyCode::Esc => {
-                        self.input_mode = InputMode::Normal;
-                        self.message = None;
+                KeyCode::Char('c') => self.clear_provider()?,
+                _ => {}
+            },
+            InputMode::AddProvider(state) => match key {
+                KeyCode::Esc => {
+                    self.input_mode = InputMode::Normal;
+                    self.message = None;
+                }
+                KeyCode::Tab => {
+                    state.current_field = (state.current_field + 1) % 4;
+                }
+                KeyCode::BackTab => {
+                    state.current_field = if state.current_field == 0 {
+                        3
+                    } else {
+                        state.current_field - 1
+                    };
+                }
+                KeyCode::Enter => {
+                    if state.current_field == 3 {
+                        self.save_new_provider()?;
+                    } else {
+                        state.current_field += 1;
                     }
-                    KeyCode::Tab => {
-                        state.current_field = (state.current_field + 1) % 4;
+                }
+                KeyCode::Backspace => match state.current_field {
+                    0 => {
+                        state.name.pop();
                     }
-                    KeyCode::BackTab => {
-                        state.current_field = if state.current_field == 0 {
-                            3
-                        } else {
-                            state.current_field - 1
-                        };
+                    1 => {
+                        state.url.pop();
                     }
-                    KeyCode::Enter => {
-                        if state.current_field == 3 {
-                            self.save_new_provider()?;
-                        } else {
-                            state.current_field += 1;
-                        }
+                    2 => {
+                        state.token.pop();
                     }
-                    KeyCode::Backspace => {
-                        match state.current_field {
-                            0 => { state.name.pop(); }
-                            1 => { state.url.pop(); }
-                            2 => { state.token.pop(); }
-                            3 => { state.model.pop(); }
-                            _ => {}
-                        }
-                    }
-                    KeyCode::Char(c) => {
-                        match state.current_field {
-                            0 => state.name.push(c),
-                            1 => state.url.push(c),
-                            2 => state.token.push(c),
-                            3 => state.model.push(c),
-                            _ => {}
-                        }
+                    3 => {
+                        state.model.pop();
                     }
                     _ => {}
-                }
-            }
-            InputMode::DeleteConfirm => {
-                match key {
-                    KeyCode::Char('y') | KeyCode::Char('Y') => {
-                        self.delete_provider()?;
-                        self.input_mode = InputMode::Normal;
-                    }
-                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
-                        self.input_mode = InputMode::Normal;
-                        self.message = None;
-                    }
+                },
+                KeyCode::Char(c) => match state.current_field {
+                    0 => state.name.push(c),
+                    1 => state.url.push(c),
+                    2 => state.token.push(c),
+                    3 => state.model.push(c),
                     _ => {}
+                },
+                _ => {}
+            },
+            InputMode::DeleteConfirm => match key {
+                KeyCode::Char('y') | KeyCode::Char('Y') => {
+                    self.delete_provider()?;
+                    self.input_mode = InputMode::Normal;
                 }
-            }
+                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                    self.input_mode = InputMode::Normal;
+                    self.message = None;
+                }
+                _ => {}
+            },
         }
 
         Ok(false)
@@ -336,7 +329,11 @@ fn ui(f: &mut Frame, app: &mut TuiApp) {
 
     // Title
     let title = Paragraph::new("CCE - Claude Config Environment")
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .alignment(Alignment::Center)
         .block(Block::default().borders(Borders::ALL));
     f.render_widget(title, chunks[0]);
@@ -368,8 +365,7 @@ fn ui(f: &mut Frame, app: &mut TuiApp) {
             .block(Block::default().borders(Borders::ALL).title("Status"));
         f.render_widget(msg, chunks[2]);
     } else {
-        let msg = Paragraph::new("")
-            .block(Block::default().borders(Borders::ALL).title("Status"));
+        let msg = Paragraph::new("").block(Block::default().borders(Borders::ALL).title("Status"));
         f.render_widget(msg, chunks[2]);
     }
 
@@ -378,12 +374,8 @@ fn ui(f: &mut Frame, app: &mut TuiApp) {
         InputMode::Normal => {
             "↑/↓: Navigate | Enter/u: Use Provider | a: Add | d: Delete | c: Clear | q/Esc: Quit"
         }
-        InputMode::AddProvider(_) => {
-            "Tab/Shift+Tab: Next/Prev Field | Enter: Save | Esc: Cancel"
-        }
-        InputMode::DeleteConfirm => {
-            "y: Confirm Delete | n/Esc: Cancel"
-        }
+        InputMode::AddProvider(_) => "Tab/Shift+Tab: Next/Prev Field | Enter: Save | Esc: Cancel",
+        InputMode::DeleteConfirm => "y: Confirm Delete | n/Esc: Cancel",
     };
     let help = Paragraph::new(help_text)
         .style(Style::default().fg(Color::Yellow))
@@ -403,8 +395,20 @@ fn render_provider_list(f: &mut Frame, app: &mut TuiApp, area: Rect) {
 
             let mut lines = vec![
                 Line::from(vec![
-                    Span::styled(marker, Style::default().fg(if is_current { Color::Green } else { Color::White })),
-                    Span::styled(&provider.name, Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        marker,
+                        Style::default().fg(if is_current {
+                            Color::Green
+                        } else {
+                            Color::White
+                        }),
+                    ),
+                    Span::styled(
+                        &provider.name,
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                 ]),
                 Line::from(vec![
                     Span::raw("  URL: "),
@@ -432,7 +436,9 @@ fn render_provider_list(f: &mut Frame, app: &mut TuiApp, area: Rect) {
             if is_current {
                 lines.push(Line::from(Span::styled(
                     "  (currently active)",
-                    Style::default().fg(Color::Green).add_modifier(Modifier::ITALIC),
+                    Style::default()
+                        .fg(Color::Green)
+                        .add_modifier(Modifier::ITALIC),
                 )));
             }
 
@@ -486,7 +492,9 @@ fn render_add_provider_form(f: &mut Frame, state: &AddProviderState, area: Rect)
     for (i, (label, value, field_idx)) in fields.iter().enumerate() {
         let is_active = state.current_field == *field_idx;
         let style = if is_active {
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
         };
@@ -497,22 +505,17 @@ fn render_add_provider_form(f: &mut Frame, state: &AddProviderState, area: Rect)
             Style::default()
         };
 
-        let input = Paragraph::new(value.as_str())
-            .style(style)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title(*label)
-                    .border_style(border_style),
-            );
+        let input = Paragraph::new(value.as_str()).style(style).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(*label)
+                .border_style(border_style),
+        );
         f.render_widget(input, chunks[i]);
 
         // Show cursor
         if is_active {
-            f.set_cursor(
-                chunks[i].x + value.len() as u16 + 1,
-                chunks[i].y + 1,
-            );
+            f.set_cursor(chunks[i].x + value.len() as u16 + 1, chunks[i].y + 1);
         }
     }
 }
