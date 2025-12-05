@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "cce",
     about = "Claude Config Environment - A tool for switching Claude environment variables",
-    version = "0.2.5"
+    version = "0.2.6"
 )]
 pub struct Cli {
     #[command(subcommand)]

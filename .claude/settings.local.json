@@ -9,7 +9,9 @@
       "Bash(strace:*)",
       "Bash(rustc:*)",
       "Bash(./test_env:*)",
-      "Bash(CCE_SHELL_INTEGRATION=1 cargo run:*)"
+      "Bash(CCE_SHELL_INTEGRATION=1 cargo run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nchore: version bump to 0.2.6\n\n- Fixed version inconsistency between Cargo.toml and cli.rs\n- Replaced unwrap() with expect() for better error handling\n- Extracted common environment variable management functions\n- Reduced code duplication in provider.rs and tui.rs\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
