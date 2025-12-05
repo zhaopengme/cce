@@ -3,7 +3,11 @@
     "allow": [
       "Bash(cargo check:*)",
       "Bash(cargo run:*)",
-      "Bash(cargo install:*)"
+      "Bash(cargo install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
