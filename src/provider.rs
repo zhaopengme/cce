@@ -388,7 +388,7 @@ impl ProviderManager {
         println!(
             r#"cce() {{
     local cce_binary="{}"
-    
+
     if [[ "$1" == "use" && -n "$2" ]]; then
         local env_output
         env_output=$(CCE_SHELL_INTEGRATION=1 "$cce_binary" use "$2" 2>/dev/null)
@@ -412,8 +412,17 @@ impl ProviderManager {
     else
         "$cce_binary" "$@"
     fi
-}}"#,
-            cce_path
+}}
+
+# Auto-load current provider on shell startup
+if [[ -f ~/.cce/config.toml ]]; then
+    _cce_current=$(awk -F\" '/^current_provider/ {{print $2}}' ~/.cce/config.toml)
+    if [[ -n "$_cce_current" ]]; then
+        eval "$(CCE_SHELL_INTEGRATION=1 "{}" use "$_cce_current" 2>/dev/null)"
+    fi
+    unset _cce_current
+fi"#,
+            cce_path, cce_path
         );
 
         Ok(())
