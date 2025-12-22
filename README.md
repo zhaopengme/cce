@@ -292,6 +292,7 @@ cp ~/.cce/config.toml ~/.cce/config.toml.backup
 | Platform | Architecture | Binary | Status |
 |----------|-------------|---------|---------|
 | Linux | x86_64 | `cce-linux-x86_64.tar.gz` | ✅ |
+| Linux | ARM64 | `cce-linux-aarch64.tar.gz` | ✅ |
 | macOS | Intel (x86_64) | `cce-macos-x86_64.tar.gz` | ✅ |
 | macOS | Apple Silicon (ARM64) | `cce-macos-aarch64.tar.gz` | ✅ |
 | Windows | x86_64 | `cce-windows-x86_64.exe.zip` | ✅ |

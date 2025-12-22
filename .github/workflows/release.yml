@@ -22,6 +22,10 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: cce
             asset_name: cce-linux-x86_64
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: cce
+            asset_name: cce-linux-aarch64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: cce.exe
@@ -45,8 +49,16 @@ jobs:
         toolchain: stable
         targets: ${{ matrix.target }}
 
+    - name: Install cross-compilation tools
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+
     - name: Build binary
       run: cargo build --release --target ${{ matrix.target }}
+      env:
+        CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
 
     - name: Compress binary (Unix)
       if: matrix.os != 'windows-latest'
